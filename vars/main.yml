@@ -1,0 +1,11 @@
+---
+
+nix_linux_dependencies:
+  Debian:
+    - curl
+    - bzip2
+    - ca-certificates
+    - libdigest-sha-perl
+  RedHat:
+    - bzip2
+    - perl-Digest-SHA

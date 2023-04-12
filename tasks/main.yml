@@ -1,0 +1,92 @@
+---
+
+- name: check nix-env binary
+  stat:
+    path: "{{ ansible_env.HOME }}/.nix-profile/bin/nix-env"
+  register: _nix_env_binary
+
+- name: install nix
+  when: not _nix_env_binary.stat.exists
+  block:
+    - name: ensure nix directory presence
+      when: ansible_system == 'Linux'
+      become: true
+      file:
+        path: /nix
+        owner: "{{ ansible_env.USER | default('root') }}"
+        state: directory
+
+    - name: install dependencies
+      when: ansible_system == 'Linux'
+      become: true
+      package:
+        name: "{{ nix_linux_dependencies[ansible_os_family] }}"
+        state: present
+
+    - name: download installer script
+      get_url:
+        url: "{{ nix_install_script_url }}"
+        dest: "/tmp/nix_install.sh"
+        mode: "u=rwx,go=rx"
+
+    - name: allow installing as root
+      when: ansible_env.USER is not defined or ansible_env.USER == "root"
+      become: true
+      lineinfile:
+        path: /etc/nix/nix.conf
+        line: 'build-users-group ='
+        create: true
+
+    - name: install | Linux
+      when: ansible_system == 'Linux'
+      become: false
+      environment:
+        USER: "{{ ansible_env.USER | default('root') }}"
+        ALLOW_PREEXISTING_INSTALLATION: "x"
+      command: /tmp/nix_install.sh
+      args:
+        creates: "{{ ansible_env.HOME  }}/.nix-profile/bin/nix-env"
+
+    - name: install | MacOS
+      when: ansible_system == 'Darwin'
+      become: false
+      environment:
+        USER: "{{ ansible_env.USER | default('root') }}"
+        ALLOW_PREEXISTING_INSTALLATION: "x"
+      command: /tmp/nix_install.sh
+      args:
+        creates: "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
+
+- name: restore profiles
+  when:
+    - nix_remove_etc_shell_modifications | bool
+  become: true
+  loop:
+    - bash.bashrc
+    - bashrc
+    - zshrc
+  blockinfile:
+    path: /etc/{{ item }}
+    state: absent
+    marker: "# {mark}"
+    marker_begin: Nix
+    marker_end: End Nix
+    create: true
+
+- name: source in user shell
+  when:
+    - nix_add_source_to_user_shells | bool
+  loop:
+    - .profile
+    - .zprofile
+  blockinfile:
+    path: "{{ ansible_env.HOME }}/{{ item }}"
+    block: |
+      if [[ -f "$HOME/.nix-profile/etc/profile.d/nix-daemon.sh" ]]; then
+        source $HOME/.nix-profile/etc/profile.d/nix-daemon.sh
+        # export NIX_PATH="$HOME/.nix-defexpr"
+      fi
+    state: present
+    marker_begin: Nix BEGIN
+    marker_end: Nix END
+    create: true

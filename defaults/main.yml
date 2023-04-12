@@ -1,0 +1,7 @@
+---
+
+nix_remove_etc_shell_modifications: true
+
+nix_add_source_to_user_shells: true
+
+nix_install_script_url: https://nixos.org/nix/install
