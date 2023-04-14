@@ -45,7 +45,7 @@
         ALLOW_PREEXISTING_INSTALLATION: "x"
       command: /tmp/nix_install.sh --yes --no-modify-profile
       args:
-        creates: "{{ ansible_env.HOME  }}/.nix-profile/bin/nix-env"
+        creates: "{{ ansible_env.HOME }}/.nix-profile/bin/nix-env"
 
     - name: install | MacOS
       when: ansible_system == 'Darwin'
@@ -55,7 +55,7 @@
         ALLOW_PREEXISTING_INSTALLATION: "x"
       command: /tmp/nix_install.sh --yes --no-modify-profile
       args:
-        creates: "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
+        creates: "{{ nix_daemon_path[ansible_system] }}"
 
 - name: restore profiles
   when:
@@ -76,15 +76,14 @@
 - name: source in user shell
   when:
     - nix_add_source_to_user_shells | bool
-    - ansible_system == 'Linux'
   loop:
     - .profile
     - .zprofile
   blockinfile:
     path: "{{ ansible_env.HOME }}/{{ item }}"
     block: |
-      if [[ -f "$HOME/.nix-profile/etc/profile.d/nix-daemon.sh" ]]; then
-        source $HOME/.nix-profile/etc/profile.d/nix-daemon.sh
+      if [[ -f "{{ nix_daemon_path[ansible_system] }}" ]]; then
+        source {{ nix_daemon_path[ansible_system] }}
         # export NIX_PATH="$HOME/.nix-defexpr"
       fi
     state: present

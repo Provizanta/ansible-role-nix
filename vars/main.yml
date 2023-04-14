@@ -9,3 +9,7 @@ nix_linux_dependencies:
   RedHat:
     - bzip2
     - perl-Digest-SHA
+
+nix_daemon_path:
+  Linux: "$HOME/.nix-profile/etc/profile.d/nix-daemon.sh"
+  Darwin: "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
