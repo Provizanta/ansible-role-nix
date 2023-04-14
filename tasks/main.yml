@@ -43,7 +43,7 @@
       environment:
         USER: "{{ ansible_env.USER | default('root') }}"
         ALLOW_PREEXISTING_INSTALLATION: "x"
-      command: /tmp/nix_install.sh
+      command: /tmp/nix_install.sh --yes --no-modify-profile
       args:
         creates: "{{ ansible_env.HOME  }}/.nix-profile/bin/nix-env"
 
@@ -53,7 +53,7 @@
       environment:
         USER: "{{ ansible_env.USER | default('root') }}"
         ALLOW_PREEXISTING_INSTALLATION: "x"
-      command: /tmp/nix_install.sh
+      command: /tmp/nix_install.sh --yes --no-modify-profile
       args:
         creates: "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
 
@@ -76,6 +76,7 @@
 - name: source in user shell
   when:
     - nix_add_source_to_user_shells | bool
+    - ansible_system == 'Linux'
   loop:
     - .profile
     - .zprofile
